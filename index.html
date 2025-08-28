@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HealthAI - Intelligent Healthcare Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #f0f4f8;
+      color: #1e293b;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+    /* Input and Textarea customization */
+    input[type="text"], input[type="number"], select, textarea {
+      background-color: white;
+      border: 1px solid #CBD5E1;
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 1rem;
+      font-weight: 400;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+    input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+    /* Button style */
+    .action-button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    .action-button:hover:not(:disabled) {
+      background-color: #2563eb;
+    }
+    .action-button:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+    /* Chat box container */
+    .chat-container {
+      overflow-y: auto;
+      height: calc(100vh - 300px);
+      padding-right: 1rem;
+    }
+    /* Chat messages */
+    .chat-message {
+      padding: 1rem 1.25rem;
+      border-radius: 0.75rem;
+      margin-bottom: 1rem;
+      max-width: 85%;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .chat-message.user {
+      background-color: #e0f2fe;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .chat-message.bot {
+      background-color: white;
+    }
+    .chat-message.loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: white;
+    }
+    .dot-flashing {
+        position: relative;
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+        background-color: #9880ff;
+        color: #9880ff;
+        animation: dot-flashing 1s infinite linear alternate;
+        animation-delay: 0.5s;
+        margin: 0 8px;
+    }
+    .dot-flashing::before, .dot-flashing::after {
+        content: "";
+        display: inline-block;
+        position: absolute;
+        top: 0;
+    }
+    .dot-flashing::before {
+        left: -15px;
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+        background-color: #9880ff;
+        color: #9880ff;
+        animation: dot-flashing 1s infinite alternate;
+        animation-delay: 0s;
+    }
+    .dot-flashing::after {
+        left: 15px;
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+        background-color: #9880ff;
+        color: #9880ff;
+        animation: dot-flashing 1s infinite alternate;
+        animation-delay: 1s;
+    }
+    @keyframes dot-flashing {
+        0% { background-color: #9880ff; }
+        50%, 100% { background-color: rgba(152, 128, 255, 0.2); }
+    }
+    /* Icon styling */
+    .icon-circle {
+      flex-shrink: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 9999px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.25rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    }
+    .icon-circle.user {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .icon-circle.bot {
+      background-color: #f59e0b;
+      color: white;
+    }
+    /* Input container at bottom */
+    #inputBox {
+      border: 1px solid #94a3b8;
+      border-radius: 9999px;
+      height: 3.5rem;
+      padding-left: 1.5rem;
+      padding-right: 4rem;
+      font-size: 1rem;
+      width: 100%;
+      max-width: 900px;
+      margin: 1rem auto;
+      display: flex;
+      align-items: center;
+      position: relative;
+      background-color: white;
+      transition: all 0.3s ease;
+    }
+    #inputBox:focus-within {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+    #inputBox input {
+      flex-grow: 1;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      background: transparent;
+    }
+    #inputBox button {
+      position: absolute;
+      right: 0.5rem;
+      top: 0.5rem;
+      bottom: 0.5rem;
+      background-color: #3b82f6;
+      border: none;
+      cursor: pointer;
+      color: white;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease;
+    }
+    #inputBox button:hover {
+      background-color: #2563eb;
+    }
+    /* Navigation */
+    .nav-link {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        color: #475569;
+    }
+    .nav-link.active, .nav-link:hover {
+        background-color: white;
+        color: #1e293b;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 50vh;
+        border-bottom: 1px solid #CBD5E1;
+        padding: 1rem;
+      }
+      main {
+        height: auto;
+        padding: 1rem;
+      }
+      .chat-container {
+        height: calc(100vh - 250px);
+      }
+    }
+  </style>
+</head>
+<body class="flex h-full min-h-screen">
+  <!-- Sidebar -->
+  <aside class="sidebar flex flex-col bg-white p-6 w-80 overflow-y-auto border-r border-slate-200">
+    <h2 class="text-xl font-bold mb-6 text-slate-900">Patient Profile</h2>
+    <div class="space-y-4">
+        <div>
+            <label for="patientName" class="mb-1 text-sm font-medium text-slate-700">Name</label>
+            <input id="patientName" type="text" placeholder="Enter name" autocomplete="off" spellcheck="false" />
+        </div>
+        <div>
+            <label for="age" class="mb-1 text-sm font-medium text-slate-700">Age</label>
+            <input id="age" type="number" placeholder="e.g., 25" min="0" max="120" step="1" />
+        </div>
+        <div>
+            <label for="gender" class="mb-1 text-sm font-medium text-slate-700">Gender</label>
+            <select id="gender">
+              <option value="" disabled selected>Select gender</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
+        </div>
+        <div>
+            <label for="medicalHistory" class="mb-1 text-sm font-medium text-slate-700">Medical History</label>
+            <textarea id="medicalHistory" rows="3" spellcheck="false" placeholder="e.g., Hypertension, Diabetes"></textarea>
+        </div>
+        <div>
+            <label for="currentMedications" class="mb-1 text-sm font-medium text-slate-700">Current Medications</label>
+            <textarea id="currentMedications" rows="3" spellcheck="false" placeholder="e.g., Metformin 500mg"></textarea>
+        </div>
+        <div>
+            <label for="allergies" class="mb-1 text-sm font-medium text-slate-700">Allergies</label>
+            <textarea id="allergies" rows="2" spellcheck="false" placeholder="e.g., Penicillin, Peanuts"></textarea>
+        </div>
+    </div>
+  </aside>
+
+  <!-- Main content area -->
+  <main class="flex-grow flex flex-col p-8 overflow-y-auto max-h-screen">
+    <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center space-x-3">
+            <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h1 class="text-3xl font-extrabold text-slate-900">HealthAI</h1>
+        </div>
+        <nav class="flex items-center bg-slate-200 p-1 rounded-lg">
+            <a class="nav-link active" data-target="patient-support">Support</a>
+            <a class="nav-link" data-target="disease-prediction">Prediction</a>
+            <a class="nav-link" data-target="treatment-plan">Treatment</a>
+            <a class="nav-link" data-target="analytics-dashboard">Analytics</a>
+        </nav>
+    </header>
+
+    <!-- Sections -->
+    <div id="sections-container">
+        <!-- 24/7 Patient Support -->
+        <section id="patient-support" class="page-section">
+          <h2 class="text-2xl font-semibold mb-2">24/7 Patient Support</h2>
+          <p class="mb-4 text-slate-600">Ask any health-related question for immediate assistance.</p>
+          <div class="chat-container flex flex-col" id="chatBox">
+             <!-- Chat messages will be appended here -->
+          </div>
+          <form id="chatForm" class="mt-6 mx-auto max-w-4xl w-full">
+            <div id="inputBox">
+              <input type="text" id="healthQuestion" placeholder="Ask your health question..." autocomplete="off" />
+              <button type="submit" aria-label="Submit health question">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Disease Prediction System -->
+        <section id="disease-prediction" class="page-section hidden">
+          <h2 class="text-2xl font-semibold mb-2">Disease Prediction System</h2>
+          <p class="mb-4 text-slate-600">Enter symptoms to receive potential condition predictions.</p>
+          <div class="bg-white p-6 rounded-lg shadow-sm">
+              <label for="symptoms" class="mb-2 block text-sm font-medium text-slate-700">Current Symptoms</label>
+              <textarea id="symptoms" rows="4" spellcheck="false" placeholder="Describe symptoms in detail (e.g., persistent headache for 3 days, fatigue, mild fever of 99.5°F)"></textarea>
+              <button class="action-button mt-4" id="generatePredictionBtn">Generate Prediction</button>
+              <div id="predictionResult" class="mt-6 hidden">
+                <h3 class="text-xl font-semibold">Potential Conditions</h3>
+                <ul id="conditionsList" class="list-disc list-inside mt-2 text-slate-900 space-y-1"></ul>
+              </div>
+          </div>
+        </section>
+
+        <!-- Personalized Treatment Plan Generator -->
+        <section id="treatment-plan" class="page-section hidden">
+          <h2 class="text-2xl font-semibold mb-2">Personalized Treatment Plan Generator</h2>
+          <p class="mb-4 text-slate-600">Generate customized treatment recommendations.</p>
+           <div class="bg-white p-6 rounded-lg shadow-sm">
+              <label for="medicalCondition" class="mb-2 block text-sm font-medium text-slate-700">Medical Condition</label>
+              <input id="medicalCondition" type="text" spellcheck="false" placeholder="e.g., Type 2 Diabetes" />
+              <button class="action-button mt-4" id="generateTreatmentBtn">Generate Treatment Plan</button>
+              <div id="treatmentResult" class="mt-6 hidden">
+                <h3 class="text-xl font-semibold">Personalized Treatment Plan</h3>
+                <div id="treatmentPlanList" class="mt-2 text-slate-900 space-y-2"></div>
+              </div>
+           </div>
+        </section>
+
+        <!-- Health Analytics Dashboard -->
+        <section id="analytics-dashboard" class="page-section hidden">
+          <h2 class="text-2xl font-semibold mb-2">Health Analytics Dashboard</h2>
+          <p class="mb-6 text-slate-600">Visualize and analyze patient health data trends.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-lg p-4 shadow-sm"><canvas id="heartRateChart"></canvas></div>
+            <div class="bg-white rounded-lg p-4 shadow-sm"><canvas id="bloodPressureChart"></canvas></div>
+          </div>
+           <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h3 class="text-xl font-semibold mb-2">AI-Generated Health Insights</h3>
+                <button class="action-button mb-4" id="generateInsightsBtn">Generate Insights</button>
+                <div id="healthInsights" class="text-slate-700 space-y-2"></div>
+           </div>
+        </section>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- NAVIGATION ---
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.page-section');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const targetId = link.getAttribute('data-target');
+
+                navLinks.forEach(nav => nav.classList.remove('active'));
+                link.classList.add('active');
+
+                sections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+            });
+        });
+        
+        // --- API CALL SETUP ---
+        const callGeminiAPI = async (prompt, buttonElement, loadingMessageContainer) => {
+            if (buttonElement) buttonElement.disabled = true;
+            if(loadingMessageContainer) {
+                loadingMessageContainer.innerHTML = `<div class="chat-message loading"><div class="dot-flashing"></div></div>`;
+                loadingMessageContainer.scrollTop = loadingMessageContainer.scrollHeight;
+            }
+
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiKey = "AIzaSyCaTvzA-TJ3laNGz2O4SZM-tDXqkk0cbw0"; // Leave empty
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0) {
+                   return result.candidates[0].content.parts[0].text;
+                }
+                return "Sorry, I couldn't process that. Please try again.";
+            } catch (error) {
+                console.error("API Call Error:", error);
+                return "An error occurred. Please check the console for details.";
+            } finally {
+                if (buttonElement) buttonElement.disabled = false;
+                 if(loadingMessageContainer) loadingMessageContainer.innerHTML = '';
+            }
+        };
+
+        const getPatientProfile = () => {
+            return `
+                - Name: ${document.getElementById('patientName').value || 'Not provided'}
+                - Age: ${document.getElementById('age').value || 'Not provided'}
+                - Gender: ${document.getElementById('gender').value || 'Not provided'}
+                - Medical History: ${document.getElementById('medicalHistory').value || 'None'}
+                - Current Medications: ${document.getElementById('currentMedications').value || 'None'}
+                - Allergies: ${document.getElementById('allergies').value || 'None'}
+            `;
+        };
+        
+        // --- 24/7 PATIENT SUPPORT ---
+        const chatForm = document.getElementById('chatForm');
+        const healthQuestionInput = document.getElementById('healthQuestion');
+        const chatBox = document.getElementById('chatBox');
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = healthQuestionInput.value.trim();
+            if (!question) return;
+
+            appendMessage(question, 'user');
+            healthQuestionInput.value = '';
+            
+            const prompt = `Based on the following patient profile:\n${getPatientProfile()}\n\nAnd the user's question: "${question}"\n\nProvide a helpful, safe, and informative response. IMPORTANT: Always include a disclaimer that you are an AI assistant and the user should consult a real medical professional for diagnosis and treatment.`;
+
+            const responseText = await callGeminiAPI(prompt, chatForm.querySelector('button'), chatBox);
+            appendMessage(responseText, 'bot');
+        });
+
+        function appendMessage(text, sender) {
+            const messageElem = document.createElement('article');
+            messageElem.className = `chat-message ${sender}`;
+            const iconClass = sender === 'user' ? 'user' : 'bot';
+            const iconChar = sender === 'user' ? 'U' : 'AI';
+            
+            // Basic markdown to HTML conversion
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');     // Italic
+            formattedText = formattedText.replace(/(\r\n|\n|\r)/gm, "<br>"); // Newlines
+
+            messageElem.innerHTML = `
+                <div class="icon-circle ${iconClass}" aria-hidden="true">${iconChar}</div>
+                <p>${formattedText}</p>
+            `;
+            chatBox.appendChild(messageElem);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // --- DISEASE PREDICTION ---
+        const generatePredictionBtn = document.getElementById('generatePredictionBtn');
+        const symptomsTextarea = document.getElementById('symptoms');
+        const conditionsList = document.getElementById('conditionsList');
+        const predictionResult = document.getElementById('predictionResult');
+
+        generatePredictionBtn.addEventListener('click', async () => {
+            const symptoms = symptomsTextarea.value.trim();
+            if (!symptoms) {
+                alert('Please enter symptoms.');
+                return;
+            }
+            
+            const prompt = `A patient with this profile:\n${getPatientProfile()}\n\nReports the following symptoms: "${symptoms}"\n\nBased on this, list 3-5 potential medical conditions, from most likely to least likely. Do not provide any explanation, just a numbered list of conditions.`;
+            
+            const responseText = await callGeminiAPI(prompt, generatePredictionBtn);
+            const conditions = responseText.split('\n').filter(c => c.trim() !== '').map(c => c.replace(/^\d+\.\s*/, ''));
+
+            conditionsList.innerHTML = '';
+            conditions.forEach(condition => {
+                const li = document.createElement('li');
+                li.textContent = condition;
+                conditionsList.appendChild(li);
+            });
+            predictionResult.classList.remove('hidden');
+        });
+        
+        // --- TREATMENT PLAN ---
+        const generateTreatmentBtn = document.getElementById('generateTreatmentBtn');
+        const medicalConditionInput = document.getElementById('medicalCondition');
+        const treatmentPlanList = document.getElementById('treatmentPlanList');
+        const treatmentResult = document.getElementById('treatmentResult');
+
+        generateTreatmentBtn.addEventListener('click', async () => {
+            const condition = medicalConditionInput.value.trim();
+            if (!condition) {
+                alert('Please enter a medical condition.');
+                return;
+            }
+
+            const prompt = `For a patient with this profile:\n${getPatientProfile()}\n\nGenerate a generalized, non-prescriptive treatment plan for the condition: "${condition}". The plan should include sections for: Lifestyle Modifications, Dietary Recommendations, and When to See a Doctor. Use markdown for formatting.`;
+
+            const responseText = await callGeminiAPI(prompt, generateTreatmentBtn);
+            treatmentPlanList.innerHTML = responseText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/(\r\n|\n|\r)/gm, "<br>");
+            treatmentResult.classList.remove('hidden');
+        });
+
+        // --- ANALYTICS DASHBOARD ---
+        const generateInsightsBtn = document.getElementById('generateInsightsBtn');
+        const healthInsights = document.getElementById('healthInsights');
+
+        generateInsightsBtn.addEventListener('click', async () => {
+            const prompt = `Analyze the following patient profile and provide a brief summary of their health status and one actionable, positive health tip. \n\nProfile:\n${getPatientProfile()}`;
+            const responseText = await callGeminiAPI(prompt, generateInsightsBtn);
+            healthInsights.innerHTML = responseText.replace(/(\r\n|\n|\r)/gm, "<br>");
+        });
+
+        // Chart.js implementation
+        const heartRateCtx = document.getElementById('heartRateChart').getContext('2d');
+        new Chart(heartRateCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Heart Rate (bpm)',
+                    data: [72, 75, 74, 78, 76, 80],
+                    borderColor: 'rgb(239, 68, 68)',
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+
+        const bloodPressureCtx = document.getElementById('bloodPressureChart').getContext('2d');
+        new Chart(bloodPressureCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Systolic (mmHg)',
+                    data: [120, 122, 118, 125, 123, 128],
+                    borderColor: 'rgb(59, 130, 246)',
+                    tension: 0.3
+                }, {
+                    label: 'Diastolic (mmHg)',
+                    data: [80, 81, 79, 82, 80, 84],
+                    borderColor: 'rgb(34, 197, 94)',
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+    });
+  </script>
+</body>
+</html>
